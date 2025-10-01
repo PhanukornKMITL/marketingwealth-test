@@ -3,6 +3,10 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 
+import { JwtAuthGuard } from '../auth/jwt-auth-guard';
+import { UseGuards } from '@nestjs/common';
+
+@UseGuards(JwtAuthGuard)
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) { }
@@ -46,5 +50,5 @@ export class OrdersController {
       endDate
     );
   }
-
 }
+

@@ -9,6 +9,8 @@ import { toast } from 'react-toastify';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
+import { logout } from "../api/authApi";
+
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
@@ -16,7 +18,7 @@ import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
-export default function OrdersPage() {
+function OrdersPage() {
     const [orders, setOrders] = useState([]);
     const [allOrders, setAllOrders] = useState([]);
     const [filterOpen, setFilterOpen] = useState(false);
@@ -50,7 +52,7 @@ export default function OrdersPage() {
         applyFilters(newValue, sortOrder);
     };
     const handleMinChange = (e) => {
-        const newMin = e.target.value; 
+        const newMin = e.target.value;
         setPriceRange([newMin, priceRange[1]]);
         if (newMin !== '' && priceRange[1] !== '') {
             applyFilters([Number(newMin), Number(priceRange[1])], sortOrder);
@@ -86,6 +88,11 @@ export default function OrdersPage() {
 
         setOrders(filtered);
     };
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    }
 
 
     const columns = [
@@ -126,6 +133,19 @@ export default function OrdersPage() {
 
     return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 20 }}>
+            <Button
+                variant="contained"
+                color="error"  // สีแดง
+                sx={{
+                    position: "absolute",
+                    top: 20,
+                    right: 20,
+                }}
+                onClick={handleLogout}
+            >
+                Logout
+            </Button>
+            
             <h2>Orders Dashboard</h2>
 
             <div style={{ width: "80%", maxWidth: 800, marginBottom: 10, textAlign: "right", position: "relative" }}>
@@ -252,3 +272,5 @@ export default function OrdersPage() {
         </div>
     );
 }
+
+export default OrdersPage;

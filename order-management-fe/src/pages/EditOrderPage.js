@@ -4,7 +4,7 @@ import OrderForm from "../components/OrderForm";
 import { getOrder, updateOrder } from "../api/orderApi";
 import { toast } from "react-toastify";
 
-export default function EditOrderPage() {
+function EditOrderPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [orderData, setOrderData] = useState(null);
@@ -46,3 +46,5 @@ export default function EditOrderPage() {
     </div>
   );
 }
+
+export default EditOrderPage;

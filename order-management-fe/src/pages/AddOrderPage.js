@@ -4,7 +4,7 @@ import { createOrder } from "../api/orderApi";
 import { toast } from "react-toastify";
 import OrderForm from "../components/OrderForm"
 
-export default function AddOrderPage() {
+function AddOrderPage() {
     const [customerName, setCustomerName] = useState('');
     const [productName, setProductName] = useState('');
     const [quantity, setQuantity] = useState('');
@@ -62,3 +62,5 @@ export default function AddOrderPage() {
         </div>
     );
 }
+
+export default AddOrderPage;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { TextField, Button } from "@mui/material";
 
-export default function OrderForm({ initialData, onSubmit, cancel }) {
+function OrderForm({ initialData, onSubmit, cancel }) {
   const [customerName, setCustomerName] = useState("");
   const [productName, setProductName] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -67,3 +67,5 @@ export default function OrderForm({ initialData, onSubmit, cancel }) {
     </form>
   );
 }
+
+export default OrderForm;

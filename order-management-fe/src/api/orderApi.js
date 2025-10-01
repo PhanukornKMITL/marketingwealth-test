@@ -1,71 +1,63 @@
 const API_URL = `${process.env.REACT_APP_API_URL}/orders`;
 
+const getAuthHeaders = () => ({
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${localStorage.getItem("token")}`,
+});
+
+const handleResponse = async (res) => {
+  if (res.status === 401) {
+    window.location.href = "/login";
+    return;
+  }
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status}`);
+  }
+  return res.json();
+};
+
 // --- Read all orders ---
 export const getOrders = async () => {
-  try {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error(`Failed to fetch orders: ${res.status}`);
-    return res.json();
-  } catch (error) {
-    console.error("Fetch failed:", error);
-    throw error;
-  }
+  const res = await fetch(API_URL, { headers: getAuthHeaders() });
+  return handleResponse(res);
 };
 
 // --- Read one order ---
 export const getOrder = async (id) => {
-  try {
-    const res = await fetch(`${API_URL}/${id}`);
-    if (!res.ok) throw new Error(`Failed to fetch order ${id}: ${res.status}`);
-    return res.json();
-  } catch (error) {
-    console.error("Fetch failed:", error);
-    throw error;
-  }
+  const res = await fetch(`${API_URL}/${id}`, { headers: getAuthHeaders() });
+  return handleResponse(res);
 };
 
 // --- Create order ---
 export const createOrder = async (orderData) => {
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(orderData),
-    });
-    if (!res.ok) throw new Error(`Failed to create order: ${res.status}`);
-    return res.json();
-  } catch (error) {
-    console.error("Create failed:", error);
-    throw error;
-  }
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(orderData),
+  });
+  return handleResponse(res);
 };
 
 // --- Update order ---
 export const updateOrder = async (id, orderData) => {
-  try {
-    const res = await fetch(`${API_URL}/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(orderData),
-    });
-    if (!res.ok) throw new Error(`Failed to update order ${id}: ${res.status}`);
-    return res.json();
-  } catch (error) {
-    console.error("Update failed:", error);
-    throw error;
-  }
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(orderData),
+  });
+  return handleResponse(res);
 };
 
 // --- Delete order ---
 export const deleteOrder = async (id) => {
-  try {
-    const res = await fetch(`${API_URL}/${id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error(`Failed to delete order ${id}: ${res.status}`);
-    return true;
-  } catch (error) {
-    console.error("Delete failed:", error);
-    throw error;
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (res.status === 401) {
+    window.location.href = "/login";
+    return;
   }
+  if (!res.ok) throw new Error(`Failed to delete order ${id}: ${res.status}`);
+  return true;
 };
