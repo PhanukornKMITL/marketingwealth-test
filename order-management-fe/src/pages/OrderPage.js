@@ -6,6 +6,15 @@ import { Button, IconButton, Slider, Box, FormControl, InputLabel, Select, MenuI
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { toast } from 'react-toastify';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+
+import dayjs from 'dayjs';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState([]);
@@ -14,8 +23,10 @@ export default function OrdersPage() {
     const [priceRange, setPriceRange] = useState(['0', '1000']);
     const [sortOrder, setSortOrder] = useState('newest');
 
+    const [startDate, setStartDate] = useState(null);
+    const [endDate, setEndDate] = useState(null);
+
     const navigate = useNavigate();
-    const filterButtonRef = useRef(null);
 
     useEffect(() => {
         async function fetchOrders() {
@@ -23,6 +34,7 @@ export default function OrdersPage() {
             setOrders(data);
             setAllOrders(data);
 
+            // กำหนดค่า default ราคาไว้ให้ slider filter
             const prices = data.map(o => o.price);
             if (prices.length > 0) {
                 setPriceRange([Math.min(...prices), Math.max(...prices)]);
@@ -32,13 +44,13 @@ export default function OrdersPage() {
     }, []);
 
     const handleFilterToggle = () => setFilterOpen(!filterOpen);
-    
+
     const handlePriceChange = (event, newValue) => {
         setPriceRange(newValue.map(String));
         applyFilters(newValue, sortOrder);
     };
     const handleMinChange = (e) => {
-        const newMin = e.target.value; // string
+        const newMin = e.target.value; 
         setPriceRange([newMin, priceRange[1]]);
         if (newMin !== '' && priceRange[1] !== '') {
             applyFilters([Number(newMin), Number(priceRange[1])], sortOrder);
@@ -46,7 +58,7 @@ export default function OrdersPage() {
     };
 
     const handleMaxChange = (e) => {
-        const newMax = e.target.value; // string
+        const newMax = e.target.value;
         setPriceRange([priceRange[0], newMax]);
         if (newMax !== '' && priceRange[0] !== '') {
             applyFilters([Number(priceRange[0]), Number(newMax)], sortOrder);
@@ -57,12 +69,24 @@ export default function OrdersPage() {
         setSortOrder(newSort);
         applyFilters(priceRange, newSort);
     };
-    const applyFilters = (price, sort) => {
+
+    const applyFilters = (price, sort, start, end) => {
         let filtered = allOrders.filter(o => o.price >= price[0] && o.price <= price[1]);
-        if (sort === 'newest') filtered.sort((a, b) => b.id - a.id);
-        else filtered.sort((a, b) => a.id - b.id);
+
+        // filter date
+        if (start) filtered = filtered.filter(o => dayjs(o.createdAt).isSameOrAfter(start, 'day'));
+        if (end) filtered = filtered.filter(o => dayjs(o.createdAt).isSameOrBefore(end, 'day'));
+
+        // sort by date
+        if (sort === 'newest')
+            filtered.sort((a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf());
+        else
+            filtered.sort((a, b) => dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf());
+
+
         setOrders(filtered);
     };
+
 
     const columns = [
         { field: "id", headerName: "ID", width: 70 },
@@ -124,7 +148,6 @@ export default function OrdersPage() {
                     </Button>
                 </div>
 
-                {/* Panel filter อยู่ใน flow ปกติใต้ปุ่ม Filter */}
                 {filterOpen && (
                     <Box
                         sx={{
@@ -175,9 +198,48 @@ export default function OrdersPage() {
                                 <MenuItem value="oldest">Oldest</MenuItem>
                             </Select>
                         </FormControl>
+
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+                                <DatePicker
+                                    label="Start Date"
+                                    value={startDate}
+                                    onChange={(newValue) => {
+                                        setStartDate(newValue);
+                                        applyFilters(priceRange.map(Number), sortOrder, newValue, endDate);
+                                    }}
+                                    renderInput={(params) => <TextField {...params} size="small" fullWidth />}
+                                />
+                                <DatePicker
+                                    label="End Date"
+                                    value={endDate}
+                                    onChange={(newValue) => {
+                                        setEndDate(newValue);
+                                        applyFilters(priceRange.map(Number), sortOrder, startDate, newValue);
+                                    }}
+                                    renderInput={(params) => <TextField {...params} size="small" fullWidth />}
+                                />
+                            </Box>
+                        </LocalizationProvider>
+
+                        <Button
+                            variant="outlined"
+                            color="secondary"
+                            fullWidth
+                            sx={{ mt: 2 }}
+                            onClick={() => {
+                                const prices = allOrders.map(o => o.price);
+                                setPriceRange([Math.min(...prices), Math.max(...prices)].map(String));
+                                setSortOrder('newest');
+                                setStartDate(null);
+                                setEndDate(null);
+                                setOrders(allOrders);
+                            }}
+                        >
+                            Clear Filter
+                        </Button>
                     </Box>
                 )}
-
             </div>
 
             <DataGrid
