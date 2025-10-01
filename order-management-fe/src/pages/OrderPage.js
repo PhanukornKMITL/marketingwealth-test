@@ -1,24 +1,68 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { getOrders, updateOrder, createOrder, deleteOrder } from "../api/orderApi";
-import { useNavigate } from "react-router-dom"; // สำหรับ navigation
-import { Button } from "@mui/material"; // MUI button
+import { getOrders, deleteOrder } from "../api/orderApi";
+import { useNavigate } from "react-router-dom";
+import { Button, IconButton, Slider, Box, FormControl, InputLabel, Select, MenuItem, TextField } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { IconButton } from "@mui/material";
 import { toast } from 'react-toastify';
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState([]);
-    const navigate = useNavigate(); // hook สำหรับ navigate
+    const [allOrders, setAllOrders] = useState([]);
+    const [filterOpen, setFilterOpen] = useState(false);
+    const [priceRange, setPriceRange] = useState(['0', '1000']);
+    const [sortOrder, setSortOrder] = useState('newest');
+
+    const navigate = useNavigate();
+    const filterButtonRef = useRef(null);
 
     useEffect(() => {
         async function fetchOrders() {
             const data = await getOrders();
             setOrders(data);
+            setAllOrders(data);
+
+            const prices = data.map(o => o.price);
+            if (prices.length > 0) {
+                setPriceRange([Math.min(...prices), Math.max(...prices)]);
+            }
         }
         fetchOrders();
     }, []);
+
+    const handleFilterToggle = () => setFilterOpen(!filterOpen);
+    
+    const handlePriceChange = (event, newValue) => {
+        setPriceRange(newValue.map(String));
+        applyFilters(newValue, sortOrder);
+    };
+    const handleMinChange = (e) => {
+        const newMin = e.target.value; // string
+        setPriceRange([newMin, priceRange[1]]);
+        if (newMin !== '' && priceRange[1] !== '') {
+            applyFilters([Number(newMin), Number(priceRange[1])], sortOrder);
+        }
+    };
+
+    const handleMaxChange = (e) => {
+        const newMax = e.target.value; // string
+        setPriceRange([priceRange[0], newMax]);
+        if (newMax !== '' && priceRange[0] !== '') {
+            applyFilters([Number(priceRange[0]), Number(newMax)], sortOrder);
+        }
+    };
+    const handleSortChange = (event) => {
+        const newSort = event.target.value;
+        setSortOrder(newSort);
+        applyFilters(priceRange, newSort);
+    };
+    const applyFilters = (price, sort) => {
+        let filtered = allOrders.filter(o => o.price >= price[0] && o.price <= price[1]);
+        if (sort === 'newest') filtered.sort((a, b) => b.id - a.id);
+        else filtered.sort((a, b) => a.id - b.id);
+        setOrders(filtered);
+    };
 
     const columns = [
         { field: "id", headerName: "ID", width: 70 },
@@ -29,72 +73,120 @@ export default function OrdersPage() {
         { field: "total", headerName: "Total", width: 130 },
         {
             field: "actions",
-            headerName: "", // ไม่แสดง header
+            headerName: "",
             width: 150,
             sortable: false,
             filterable: false,
             renderCell: (params) => (
                 <div style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
-                    <IconButton color="primary" onClick={() => handleEdit(params.row)}>
+                    <IconButton color="primary" onClick={() => navigate(`/edit/${params.row.id}`)}>
                         <EditIcon />
                     </IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(params.row)}>
+                    <IconButton color="error" onClick={async () => {
+                        if (!window.confirm(`Delete order ${params.row.id}?`)) return;
+                        try {
+                            await deleteOrder(params.row.id);
+                            setOrders(prev => prev.filter(o => o.id !== params.row.id));
+                            setAllOrders(prev => prev.filter(o => o.id !== params.row.id));
+                            toast.success(`Order #${params.row.id} deleted!`);
+                        } catch {
+                            toast.error("Failed to delete order.");
+                        }
+                    }}>
                         <DeleteIcon />
                     </IconButton>
                 </div>
             ),
         }
-
     ];
 
-    const handleAddOrder = () => {
-        navigate("/orders/new");
-    };
-
-    const handleEdit = (order) => {
-        navigate(`/orders/${order.id}/edit`);
-    };
-
-    const handleDelete = async (order) => {
-        if (!window.confirm(`Delete order ${order.id}?`)) return;
-
-        try {
-
-            await deleteOrder(order.id);
-            setOrders((prev) => prev.filter((o) => o.id !== order.id));
-
-            toast.success(`Order #${order.id} deleted!`);
-        } catch (error) {
-            console.error("Failed to delete order:", error);
-            toast.error("Failed to delete order.");
-        }
-    };
-
     return (
-        <div
-            style={{
-                display: "flex",
-                justifyContent: "center",
-                padding: "20px",
-            }}
-        >
-            <div style={{ width: "80%", maxWidth: 800 }}>
-                <h2 style={{ textAlign: "center" }}>Orders Dashboard</h2>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 20 }}>
+            <h2>Orders Dashboard</h2>
 
-                <div style={{ textAlign: "right", marginBottom: "10px" }}>
-                    <Button variant="contained" color="primary" onClick={handleAddOrder}>
+            <div style={{ width: "80%", maxWidth: 800, marginBottom: 10, textAlign: "right", position: "relative" }}>
+
+                <div
+                    style={{
+                        width: "100%",
+                        maxWidth: 800,
+                        marginBottom: 10,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                    }}
+                >
+                    <Button variant="outlined" color="secondary" onClick={handleFilterToggle}>
+                        Filter
+                    </Button>
+                    <Button variant="contained" color="primary" onClick={() => navigate("/add")}>
                         + Add Order
                     </Button>
                 </div>
 
-                <DataGrid
-                    rows={orders}
-                    columns={columns}
-                    pageSize={5}
-                    rowsPerPageOptions={[5]}
-                    autoHeight
-                />
+                {/* Panel filter อยู่ใน flow ปกติใต้ปุ่ม Filter */}
+                {filterOpen && (
+                    <Box
+                        sx={{
+                            position: "absolute",
+                            top: 40,
+                            width: 250,
+                            bgcolor: "background.paper",
+                            border: "1px solid #ccc",
+                            borderRadius: 2,
+                            p: 2,
+                            boxShadow: 3,
+                            mt: 1,
+                            zIndex: 100
+                        }}
+                    >
+                        <p>Price: {priceRange[0]} - {priceRange[1]}</p>
+
+                        {/* ช่องกรอกตัวเลข */}
+                        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                            <TextField
+                                label="Min"
+                                type="number"
+                                value={priceRange[0]}
+                                onChange={handleMinChange}
+                                size="small"
+                            />
+                            <TextField
+                                label="Max"
+                                type="number"
+                                value={priceRange[1]}
+                                onChange={handleMaxChange}
+                                size="small"
+                            />
+                        </div>
+
+                        <Slider
+                            value={priceRange}
+                            onChange={handlePriceChange}
+                            valueLabelDisplay="auto"
+                            min={0}
+                            max={1000}
+                        />
+
+                        <FormControl fullWidth sx={{ mt: 2 }}>
+                            <InputLabel>Sort</InputLabel>
+                            <Select value={sortOrder} onChange={handleSortChange}>
+                                <MenuItem value="newest">Newest</MenuItem>
+                                <MenuItem value="oldest">Oldest</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
+                )}
+
             </div>
+
+            <DataGrid
+                rows={orders}
+                columns={columns}
+                pageSize={5}
+                rowsPerPageOptions={[5]}
+                autoHeight
+            />
         </div>
     );
 }

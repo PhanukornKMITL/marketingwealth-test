@@ -1,45 +1,76 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Order } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 
-export interface Order {
-  id: number;
-  customerName: string;
-  productName: string;
-  quantity: number;
-  price: number;
-}
-
 @Injectable()
 export class OrdersService {
-  private orders: Order[] = [];
-  private idCounter = 1;
 
-  create(createOrderDto: CreateOrderDto): Order {
-    const newOrder: Order = { id: this.idCounter++, ...createOrderDto };
-    this.orders.push(newOrder);
-    return newOrder;
+  constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+  ) { }
+
+  create(createOrderDto: CreateOrderDto): Promise<Order> {
+    const order = this.orderRepository.create({
+      ...createOrderDto,
+      total: createOrderDto.quantity * createOrderDto.price,
+    });
+    return this.orderRepository.save(order);
   }
 
-  findAll(): Order[] {
-    return this.orders;
+  findAll(): Promise<Order[]> {
+    return this.orderRepository.find();
   }
 
-  findOne(id: number): Order {
-    const order = this.orders.find((o) => o.id === id);
+  async findOne(id: number): Promise<Order> {
+    const order = await this.orderRepository.findOneBy({ id });
     if (!order) throw new NotFoundException(`Order #${id} not found`);
     return order;
   }
 
-  update(id: number, updateOrderDto: UpdateOrderDto): Order {
-    const order = this.findOne(id);
-    Object.assign(order, updateOrderDto);
-    return order;
+  async update(id: number, updateOrderDto: UpdateOrderDto): Promise<Order> {
+
+    const order = await this.findOne(id);
+
+    const updatedData = {
+      ...updateOrderDto,
+      total: (updateOrderDto.quantity ?? order.quantity) * (updateOrderDto.price ?? order.price),
+    };
+
+    await this.orderRepository.update(id, updatedData);
+    return this.findOne(id);
   }
 
-  remove(id: number): void {
-    const index = this.orders.findIndex((o) => o.id === id);
-    if (index === -1) throw new NotFoundException(`Order #${id} not found`);
-    this.orders.splice(index, 1);
+  async remove(id: number): Promise<void> {
+    const result = await this.orderRepository.delete(id);
+    if (result.affected === 0) throw new NotFoundException(`Order #${id} not found`);
+  }
+
+  async findWithFilter(
+    minPrice?: number,
+    maxPrice?: number,
+    startDate?: string,
+    endDate?: string
+  ): Promise<Order[]> {
+    
+    const query = this.orderRepository.createQueryBuilder('order');
+
+    if (minPrice !== undefined) {
+      query.andWhere('order.total >= :minPrice', { minPrice });
+    }
+    if (maxPrice !== undefined) {
+      query.andWhere('order.total <= :maxPrice', { maxPrice });
+    }
+    if (startDate) {
+      query.andWhere('order.createdAt >= :startDate', { startDate });
+    }
+    if (endDate) {
+      query.andWhere('order.createdAt <= :endDate', { endDate });
+    }
+
+    return query.getMany();
   }
 }
