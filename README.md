@@ -1,1 +1,19 @@
 # marketingwealth-test
+
+# FE env
+REACT_APP_API_URL=
+
+# BE env
+
+PORT=
+FRONTEND_URL=
+
+DB_HOST=
+DB_PORT=
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
+
+JWT_SECRET=
+JWT_EXPIRES_IN=1h
+

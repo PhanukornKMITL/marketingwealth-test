@@ -18,7 +18,7 @@ const handleResponse = async (res) => {
 
 // --- Read all orders ---
 export const getOrders = async () => {
-  const res = await fetch(API_URL, { headers: getAuthHeaders() });
+  const res = await fetch(API_URL, { headers: getAuthHeaders() });  
   return handleResponse(res);
 };
 

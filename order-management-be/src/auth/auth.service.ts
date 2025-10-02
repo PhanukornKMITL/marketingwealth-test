@@ -24,8 +24,6 @@ export class AuthService {
         if (existing) {
             throw new BadRequestException('Username already exists');
         }
-
-        console.log('dto',dto);
         
         const hashed = await bcrypt.hash(dto.password, 10);
         const user = this.usersRepository.create({ username: dto.username, password: hashed });

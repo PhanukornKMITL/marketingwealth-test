@@ -5,15 +5,8 @@ const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-// handle response
-const handleResponse = async (res) => {
-  console.log('res', res);
 
-  // if (res.status === 401) {
-  //   const error = new Error("Unauthorized");
-  //   error.status = 401;
-  //   throw error;
-  // }
+const handleResponse = async (res) => {
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));

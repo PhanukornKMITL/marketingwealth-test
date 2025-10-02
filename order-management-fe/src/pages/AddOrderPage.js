@@ -12,9 +12,8 @@ function AddOrderPage() {
 
     const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
+    const handleSubmit = async ({ customerName, productName, quantity, price }) => {
+        // ไม่ต้อง e.preventDefault()
         const numericQuantity = Number(quantity);
         const numericPrice = Number(price);
 
@@ -43,6 +42,7 @@ function AddOrderPage() {
             toast.error("Failed to create order.");
         }
     };
+
 
 
     return (

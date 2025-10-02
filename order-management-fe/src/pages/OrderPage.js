@@ -102,6 +102,7 @@ function OrdersPage() {
         { field: "quantity", headerName: "Quantity", width: 130 },
         { field: "price", headerName: "Price", width: 130 },
         { field: "total", headerName: "Total", width: 130 },
+        { field: "createdAt", headerName: "Order Date", width: 130},
         {
             field: "actions",
             headerName: "",
